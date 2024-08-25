@@ -164,6 +164,40 @@ else:
                     )
     
                     st.plotly_chart(fig)
+            # New plot: Sum of Qty for all Inventories in the selected Resource
+            st.subheader(f'Total WIP at {resource_to_plot} Across All Inventories')
+
+            @st.cache_data
+            def get_total_qty_data(pivot_df, resource_name):
+                filtered_data = pivot_df[pivot_df['Resources'] == resource_name]
+                total_qty = filtered_data.iloc[:, 2:].sum()  # Sum across all inventories
+                return total_qty
+
+            total_qty_data = get_total_qty_data(pivot_df, resource_to_plot)
+
+            fig2 = px.line(
+                x=total_qty_data.index,
+                y=total_qty_data.values,
+                labels={'x': 'Date', 'y': 'Total WIP (in MT)'},
+                title=f'Total WIP for {resource_to_plot}',
+                markers=True
+            )
+
+            fig2.update_traces(line=dict(color='orange', width=4))
+            fig2.update_layout(
+                xaxis_title='Date',
+                yaxis_title='Total WIP (in MT)',
+                title_font_size=24,
+                title_x=0.5,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='LightPink'),
+                yaxis=dict(showgrid=True, gridcolor='LightPink'),
+            )
+
+            st.plotly_chart(fig2)
+
+    
 
     # Page 2: Upload and Merge DataFrames
     if page == "Page 2: Circle Daily Status":
