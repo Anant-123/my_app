@@ -98,6 +98,9 @@ else:
             all_data['Resources'] = all_data['Resources'].ffill()
             all_data['Qty'] = pd.to_numeric(all_data['Qty'], errors='coerce')
             all_data = all_data.dropna(subset=['Qty']).reset_index(drop=True)
+
+            # Divide Qty by 1000
+            all_data['Qty'] = all_data['Qty'] / 1000
     
             pivot_df = pd.pivot_table(
                 all_data,
@@ -142,7 +145,7 @@ else:
                     fig = px.line(
                         x=dates,
                         y=values,
-                        labels={'x': 'Date', 'y': 'WIP'},
+                        labels={'x': 'Date', 'y': 'WIP in MT'},
                         title=f'WIP trend of {inv_to_plot} on  {resource_to_plot}',
                         markers=True
                     )
