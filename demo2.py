@@ -10,7 +10,10 @@ st.set_page_config(layout="wide")
 # Sample user database
 USER_DB = {
     "user1": "password1",
-    "user2": "password2"
+    "swapan.g": "password",
+    "mahesh.m": "password",
+    "anant.m": "123",
+    "harendra.s": "password"
 }
 
 # Function to verify username and password
