@@ -142,8 +142,8 @@ else:
                     fig = px.line(
                         x=dates,
                         y=values,
-                        labels={'x': 'Date', 'y': 'Quantity'},
-                        title=f'Variation of {resource_to_plot} - {inv_to_plot} with Date',
+                        labels={'x': 'Date', 'y': 'WIP'},
+                        title=f'WIP trend of {inv_to_plot} on  {resource_to_plot}',
                         markers=True
                     )
     
