@@ -146,7 +146,7 @@ else:
                         x=dates,
                         y=values,
                         labels={'x': 'Date', 'y': 'WIP in MT'},
-                        title=f'WIP trend of {inv_to_plot} on  {resource_to_plot}',
+                        title=f'WIP trend of {inv_to_plot} at  {resource_to_plot}',
                         markers=True
                     )
     
@@ -154,7 +154,7 @@ else:
                     fig.update_traces(line=dict(color='royalblue', width=4))
                     fig.update_layout(
                         xaxis_title='Date',
-                        yaxis_title='Quantity',
+                        yaxis_title='WIP in MT',
                         title_font_size=24,
                         title_x=0.5,
                         plot_bgcolor='rgba(0,0,0,0)',
