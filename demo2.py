@@ -59,97 +59,101 @@ else:
     # Page 1: WIP Data Processor
     if page == "Page 1: WIP Daily Trend":
 
-        st.image('logo.jfif', width=100)
-        st.title('WIP Day-wise Trend')
-    
-        # File uploader to upload multiple files
-        uploaded_files = st.file_uploader("Choose WIP Excel files", accept_multiple_files=True, type="xlsx")
-    
-        @st.cache_data
-        def process_files(uploaded_files):
-            files_with_dates = []
-    
-            for uploaded_file in uploaded_files:
-                file_name = uploaded_file.name
-                match = re.search(r'Alloy_Product_Wise_Summery__RK_(\d{2})(\d{2})(\d{2})', file_name)
-                if match:
-                    day, month, year = match.groups()
-                    file_date = datetime.strptime(f'{day}{month}{year}', '%d%m%y')
-                    files_with_dates.append((uploaded_file, file_date))
-                else:
-                    st.error(f"Filename does not match the expected pattern: {file_name}")
-    
-            if not files_with_dates:
-                st.error("No valid files were uploaded.")
-                return None
-    
-            files_with_dates.sort(key=lambda x: x[1])
-            df_list = []
-    
-            for uploaded_file, file_date in files_with_dates:
-                try:
-                    df = pd.read_excel(uploaded_file, sheet_name='FNDWRR')
-                    df['Date'] = file_date.strftime('%Y-%m-%d')
-                    df_list.append(df)
-                except Exception as e:
-                    st.error(f"Error reading {uploaded_file.name}: {e}")
-    
-            all_data = pd.concat(df_list, ignore_index=True)
-            all_data['Resources'] = all_data['Resources'].ffill()
-            all_data['Qty'] = pd.to_numeric(all_data['Qty'], errors='coerce')
-            all_data = all_data.dropna(subset=['Qty']).reset_index(drop=True)
+    st.image('logo.jfif', width=100)
+    st.title('WIP Day-wise Trend')
 
-            # Divide Qty by 1000
-            all_data['Qty'] = all_data['Qty'] / 1000
-    
-            pivot_df = pd.pivot_table(
-                all_data,
-                values='Qty',
-                index=['Resources', 'Inv'],
-                columns='Date',
-                aggfunc='sum',
-                fill_value=0
-            )
-    
-            all_dates = pd.date_range(start=min(files_with_dates, key=lambda x: x[1])[1], 
-                                      end=max(files_with_dates, key=lambda x: x[1])[1])
-            all_dates_str = [d.strftime('%Y-%m-%d') for d in all_dates]
-            pivot_df = pivot_df.reindex(columns=all_dates_str, fill_value=0).reset_index()
-    
-            return pivot_df
-    
-        if uploaded_files:
-            pivot_df = process_files(uploaded_files)
-    
-            if pivot_df is not None:
-                st.dataframe(pivot_df)
-    
-                # Dropdowns to select the resource and inventory to plot
-                resource_to_plot = st.selectbox('Select a Machine center to plot', options=pivot_df['Resources'].unique())
-                inv_to_plot = st.selectbox('Select an inventory to plot', options=pivot_df['Inv'].unique())
-    
-                @st.cache_data
-                def get_plot_data(pivot_df, resource_name, inv_name):
-                    filtered_data = pivot_df[(pivot_df['Resources'] == resource_name) & (pivot_df['Inv'] == inv_name)]
-                    return filtered_data
-    
-                filtered_data = get_plot_data(pivot_df, resource_to_plot, inv_to_plot)
-    
-                if filtered_data.empty:
-                    st.error(f"No data found for Resource '{resource_to_plot}' and Inventory '{inv_to_plot}'.")
+    # File uploader to upload multiple files
+    uploaded_files = st.file_uploader("Choose WIP Excel files", accept_multiple_files=True, type="xlsx")
+
+    @st.cache_data
+    def process_files(uploaded_files):
+        files_with_dates = []
+
+        for uploaded_file in uploaded_files:
+            file_name = uploaded_file.name
+            match = re.search(r'Alloy_Product_Wise_Summery__RK_(\d{2})(\d{2})(\d{2})', file_name)
+            if match:
+                day, month, year = match.groups()
+                file_date = datetime.strptime(f'{day}{month}{year}', '%d%m%y')
+                files_with_dates.append((uploaded_file, file_date))
+            else:
+                st.error(f"Filename does not match the expected pattern: {file_name}")
+
+        if not files_with_dates:
+            st.error("No valid files were uploaded.")
+            return None
+
+        files_with_dates.sort(key=lambda x: x[1])
+        df_list = []
+
+        for uploaded_file, file_date in files_with_dates:
+            try:
+                df = pd.read_excel(uploaded_file, sheet_name='FNDWRR')
+                df['Date'] = file_date.strftime('%Y-%m-%d')
+                df_list.append(df)
+            except Exception as e:
+                st.error(f"Error reading {uploaded_file.name}: {e}")
+
+        all_data = pd.concat(df_list, ignore_index=True)
+        all_data['Resources'] = all_data['Resources'].ffill()
+        all_data['Qty'] = pd.to_numeric(all_data['Qty'], errors='coerce')
+        all_data = all_data.dropna(subset=['Qty']).reset_index(drop=True)
+
+        # Divide Qty by 1000
+        all_data['Qty'] = all_data['Qty'] / 1000
+
+        pivot_df = pd.pivot_table(
+            all_data,
+            values='Qty',
+            index=['Resources', 'Inv'],
+            columns='Date',
+            aggfunc='sum',
+            fill_value=0
+        )
+
+        all_dates = pd.date_range(start=min(files_with_dates, key=lambda x: x[1])[1], 
+                                  end=max(files_with_dates, key=lambda x: x[1])[1])
+        all_dates_str = [d.strftime('%Y-%m-%d') for d in all_dates]
+        pivot_df = pivot_df.reindex(columns=all_dates_str, fill_value=0).reset_index()
+
+        return pivot_df
+
+    if uploaded_files:
+        pivot_df = process_files(uploaded_files)
+
+        if pivot_df is not None:
+            st.dataframe(pivot_df)
+
+            # Multiselect to select the resources and inventories to plot
+            resources_to_plot = st.multiselect('Select Machine centers to plot', options=pivot_df['Resources'].unique())
+            invs_to_plot = st.multiselect('Select inventories to plot', options=pivot_df['Inv'].unique())
+
+            @st.cache_data
+            def get_plot_data(pivot_df, resource_names, inv_names):
+                filtered_data = pivot_df[
+                    (pivot_df['Resources'].isin(resource_names)) & (pivot_df['Inv'].isin(inv_names))
+                ]
+                summed_data = filtered_data.iloc[:, 2:].sum()  # Sum across selected resources and inventories
+                return summed_data
+
+            if resources_to_plot and invs_to_plot:
+                plot_data = get_plot_data(pivot_df, resources_to_plot, invs_to_plot)
+
+                if plot_data.empty:
+                    st.error(f"No data found for selected Machine centers and Inventories.")
                 else:
-                    dates = pivot_df.columns[2:]  # Skip 'Resources' and 'Inv' columns
-                    values = filtered_data.iloc[0, 2:].values  # Get the values for the selected resource and inventory
-    
+                    dates = plot_data.index
+                    values = plot_data.values
+
                     # Use Plotly to create a colorful plot
                     fig = px.line(
                         x=dates,
                         y=values,
                         labels={'x': 'Date', 'y': 'WIP in MT'},
-                        title=f'WIP trend of {inv_to_plot} at  {resource_to_plot}',
+                        title=f'WIP trend of selected inventories at selected Machine centers',
                         markers=True
                     )
-    
+
                     # Customize the appearance
                     fig.update_traces(line=dict(color='royalblue', width=4))
                     fig.update_layout(
@@ -162,24 +166,25 @@ else:
                         xaxis=dict(showgrid=True, gridcolor='LightPink'),
                         yaxis=dict(showgrid=True, gridcolor='LightPink'),
                     )
-    
+
                     st.plotly_chart(fig)
+            
             # New plot: Sum of Qty for all Inventories in the selected Resource
-            st.subheader(f'Total WIP at {resource_to_plot} Across All Inventories')
+            st.subheader(f'Total WIP Across Selected Machine centers and Inventories')
 
             @st.cache_data
-            def get_total_qty_data(pivot_df, resource_name):
-                filtered_data = pivot_df[pivot_df['Resources'] == resource_name]
+            def get_total_qty_data(pivot_df, resource_names):
+                filtered_data = pivot_df[pivot_df['Resources'].isin(resource_names)]
                 total_qty = filtered_data.iloc[:, 2:].sum()  # Sum across all inventories
                 return total_qty
 
-            total_qty_data = get_total_qty_data(pivot_df, resource_to_plot)
+            total_qty_data = get_total_qty_data(pivot_df, resources_to_plot)
 
             fig2 = px.line(
                 x=total_qty_data.index,
                 y=total_qty_data.values,
                 labels={'x': 'Date', 'y': 'Total WIP (in MT)'},
-                title=f'Total WIP for {resource_to_plot}',
+                title=f'Total WIP for selected Machine centers',
                 markers=True
             )
 
