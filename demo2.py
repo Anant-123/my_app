@@ -150,7 +150,7 @@ else:
                             x=dates,
                             y=values,
                             labels={'x': 'Date', 'y': 'WIP in MT'},
-                            title=f'WIP trend of selected inventories at selected Machine centers',
+                            title=f'WIP trend for selected inventories at {", ".join(resources_to_plot)}',
                             markers=True
                         )
     
@@ -160,7 +160,7 @@ else:
                             xaxis_title='Date',
                             yaxis_title='WIP in MT',
                             title_font_size=24,
-                            title_x=0.5,
+                            title_x=0.3,  # Center title
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
                             xaxis=dict(showgrid=True, gridcolor='LightPink'),
@@ -168,39 +168,41 @@ else:
                         )
     
                         st.plotly_chart(fig)
-            
-            # New plot: Sum of Qty for all Inventories in the selected Resource
-            st.subheader(f'Total WIP Across Selected Machine centers and Inventories')
-
-            @st.cache_data
-            def get_total_qty_data(pivot_df, resource_names):
-                filtered_data = pivot_df[pivot_df['Resources'].isin(resource_names)]
-                total_qty = filtered_data.iloc[:, 2:].sum()  # Sum across all inventories
-                return total_qty
-
-            total_qty_data = get_total_qty_data(pivot_df, resources_to_plot)
-
-            fig2 = px.line(
-                x=total_qty_data.index,
-                y=total_qty_data.values,
-                labels={'x': 'Date', 'y': 'Total WIP (in MT)'},
-                title=f'Total WIP for selected Machine centers',
-                markers=True
-            )
-
-            fig2.update_traces(line=dict(color='orange', width=4))
-            fig2.update_layout(
-                xaxis_title='Date',
-                yaxis_title='Total WIP (in MT)',
-                title_font_size=24,
-                title_x=0.5,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridcolor='LightPink'),
-                yaxis=dict(showgrid=True, gridcolor='LightPink'),
-            )
-
-            st.plotly_chart(fig2)
+                
+                # New plot: Sum of Qty for all Inventories in the selected Resource
+                st.subheader(f'Total WIP Across Selected Machine centers and Inventories')
+    
+                @st.cache_data
+                def get_total_qty_data(pivot_df, resource_names):
+                    filtered_data = pivot_df[pivot_df['Resources'].isin(resource_names)]
+                    total_qty = filtered_data.iloc[:, 2:].sum()  # Sum across all inventories
+                    return total_qty
+    
+                total_qty_data = get_total_qty_data(pivot_df, resources_to_plot)
+    
+                # Adding the selected machine centers to the title
+                selected_resources_str = ", ".join(resources_to_plot)
+                fig2 = px.line(
+                    x=total_qty_data.index,
+                    y=total_qty_data.values,
+                    labels={'x': 'Date', 'y': 'Total WIP (in MT)'},
+                    title=f'Total WIP for {selected_resources_str}',
+                    markers=True
+                )
+    
+                fig2.update_traces(line=dict(color='orange', width=4))
+                fig2.update_layout(
+                    xaxis_title='Date',
+                    yaxis_title='Total WIP (in MT)',
+                    title_font_size=24,
+                    title_x=0.3,  # Center title
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='LightPink'),
+                    yaxis=dict(showgrid=True, gridcolor='LightPink'),
+                )
+    
+                st.plotly_chart(fig2)
 
     
 
