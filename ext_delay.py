@@ -278,10 +278,42 @@ if uploaded_file is not None:
                 
                 fig2 = create_mech_ei_plot(press_data, press_num)
                 st.plotly_chart(fig2, use_container_width=True)
+                
+                # Define the columns that represent different types of delays
+                delay_columns = [
+                    "Mechanical", "E&I", "Operation", "Die Shop", "Misc", "P.M.",
+                    "SD / BD", "No Order", "No Billet", "Center Crack", "Planning",
+                    "Die Failure", "Die Management", "Die Development", "Die change Time",
+                    "System", "Power", "Die Withdrawal"
+                ]
 
-                # Add pie chart
-                fig_pie = create_pie_chart(press_data, press_num)
-                st.plotly_chart(fig_pie, use_container_width=True)
+                # Calculate the sum for each delay type
+                delay_sums = press_data[delay_columns].sum()
+
+                # Calculate the percentage for each delay type
+                delay_percentages = delay_sums / delay_sums.sum() * 100
+
+                # Prepare data for pie chart
+                pie_data = pd.DataFrame({
+                    'Delay Type': delay_sums.index,
+                    'Sum': delay_sums.values,
+                    'Percentage': delay_percentages.values
+                })
+
+
+
+                # Filter to include only those delay types where percentage is greater than 5%
+                filtered_pie_data = pie_data[pie_data['Percentage'] > 5]
+
+                # Create the pie chart
+                fig = px.pie(filtered_pie_data, values='Sum', names='Delay Type', 
+                            title='Delay Distribution (Only >5%)',
+                            hover_data=['Percentage'], 
+                            labels={'Percentage':'% of Total'})
+
+                # Show the chart in Streamlit
+                st.plotly_chart(fig)
+
 
         # Display DataFrame preview
         st.write("### Data Preview")
