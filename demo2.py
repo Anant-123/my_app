@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 import matplotlib.pyplot as plt
 import plotly.express as px
+import numpy as np
 
 # Set page config to use wide layout
 st.set_page_config(layout="wide")
@@ -51,7 +52,7 @@ else:
     st.sidebar.title("FRP Planning")
     st.sidebar.write(f"Welcome, {st.session_state['username']}!")
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Daily Status"])
+    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Best recovery figure"])
     if st.sidebar.button("Logout"):
         logout()
         st.experimental_rerun()
@@ -207,64 +208,117 @@ else:
     
 
     # Page 2: Upload and Merge DataFrames
-    if page == "Page 2: Circle Daily Status":
+    if page == "Page 2: Circle Best recovery figure":
         st.image('logo.jfif', width=100)
-        st.title("Circle Status today")
-
-        # File uploader for production and item description files
-        uploaded_files = st.file_uploader("Choose Excel files", accept_multiple_files=True, type="xlsx")
-
-        if uploaded_files:
-            df_prod = None
-            df_item = None
-
-            for uploaded_file in uploaded_files:
-                file_name = uploaded_file.name
-                match_prod = re.search(r'Hindalco_Daily_Production_Stat_(\d{6})', file_name)
-                match_item = re.search(r'Item_desc', file_name, re.IGNORECASE)
-                
-                if match_prod:
-                    report_date = match_prod.group(1)
-                    try:
-                        temp_df_prod = pd.read_excel(uploaded_file)
-                        temp_df_prod['Report Date'] = datetime.strptime(report_date, '%d%m%y')
-                        if df_prod is None:
-                            df_prod = temp_df_prod
-                        else:
-                            df_prod = pd.concat([df_prod, temp_df_prod])
-                    except Exception as e:
-                        st.error(f"Error reading production file {file_name}: {e}")
-
-                elif match_item:
-                    try:
-                        df_item = pd.read_excel(uploaded_file)
-                    except Exception as e:
-                        st.error(f"Error reading item description file {file_name}: {e}")
-
-                else:
-                    st.error(f"Filename does not match the expected pattern: {file_name}")
-
-            # Display the dataframes if they exist
-            if df_prod is not None:
-                st.write("Production Data:")
-                st.dataframe(df_prod.head())
+        st.title("Circle Best recovery figure")
+        # Define the recovery calculation function
+        def recovery(w, b, t, angle_deg):
+            # Convert angle from degrees to radians
+            angle_rad = np.pi * angle_deg / 180
             
-            if df_item is not None:
-                st.write("Item Description Data:")
-                st.dataframe(df_item.head())
+            blank_center = b + 5
+            tool_pitch = blank_center * np.sin(angle_rad)
+            coil_pitch = blank_center * np.cos(angle_rad)
+            
+            # Constants
+            disc_to_border = 30  # Fixed value
+            
+            # Usable width
+            usable_width = w - 2 * disc_to_border
+            
+            # Ensure that the usable width is positive
+            if usable_width <= b:
+                return -np.inf  # Infeasible solution
+            
+            # Number of blanks
+            no_of_blanks = np.floor((usable_width - b) / tool_pitch) + 1
+            
+            # Material used
+            material_used = 2 * coil_pitch * w * t / 1000  # in cubic meters
+            
+            # Blank volume
+            blank_vol = (no_of_blanks * np.pi * b**2 * t) / 4000  # in cubic meters
+            
+            # Percentage loss
+            percent_loss = (material_used - blank_vol) / material_used * 100
+            
+            # Percentage recovery
+            percent_recovery = 100 - percent_loss
+            
+            return percent_recovery
 
-            # Perform the merge if both dataframes are available
-            if df_prod is not None and df_item is not None:
-                try:
-                    df_merged_prod = df_prod.merge(df_item, how='left', left_on='Item_Code', right_on='FG Item_11')
-                    st.write("Merged Data:")
-                    st.dataframe(df_merged_prod.head(10))
-                    
-                    # Group by 'Unit' and calculate sum of 'Prod_Qty(Kg)' divided by 1000
-                    df_grouped = df_merged_prod.groupby('Unit')['Prod_Qty(Kg)'].sum().reset_index()
-                    df_grouped['Prod_Qty_MT'] = df_grouped['Prod_Qty(Kg)'] / 1000
+            # Inputs for b and t from user
+        b = st.number_input("Enter the disc diameter (b) in mm:", min_value=100, max_value=1000, value=500, step=10)
+        t = st.number_input("Enter the thickness (t) in mm:", min_value=1, max_value=100, value=10, step=1)
 
-                    st.write("Grouped Data with Production Quantity in MT:")
-                    st.dataframe(df_grouped[['Unit', 'Prod_Qty_MT']])
-                except Exception as e:
-                    st.error(f"Error merging dataframes: {e}")
+        # Possible discrete values for coil width w
+        w_values = [914, 965, 1016, 1067, 1118, 1270, 1320]
+
+        # Generate angle values from 30 to 60 in steps of 1.5 degrees
+        angle_values = np.arange(30, 60.1, 1.5)
+
+        # Initialize variables to track the optimal values
+        best_w = None
+        best_angle = None
+        max_recovery = -np.inf
+
+        # Initialize a list to store detailed recovery results
+        recovery_data = []
+        # Evaluate recovery for each value of w and angle
+        for w in w_values:
+            for angle in angle_values:
+                rec = recovery(w, b, t, angle)
+                recovery_data.append([w, angle, rec])
+                
+                # Update optimal recovery if a better value is found
+                if rec > max_recovery:
+                    max_recovery = rec
+                    best_w = w
+                    best_angle = angle
+
+        # Display the optimal coil width, angle, and maximum recovery
+        st.subheader("Optimal Recovery Results")
+        st.write(f"**Optimal coil width:** {best_w} mm")
+        st.write(f"**Optimal angle:** {best_angle:.2f}°")
+        st.write(f"**Maximum recovery percentage:** {max_recovery:.2f}%")
+
+        # Create a DataFrame for detailed recovery results
+        df_recovery = pd.DataFrame(recovery_data, columns=["Width (mm)", "Angle (°)", "% Recovery"])
+
+        st.dataframe(df_recovery)
+
+        # Filter the DataFrame to show only the maximum recovery row for each width
+        df_best_recovery = df_recovery.groupby("Width (mm)", as_index=False).apply(lambda x: x.loc[x["% Recovery"].idxmax()])
+
+        # Round the recovery percentage and angle to 2 decimal places
+        df_best_recovery["% Recovery"] = df_best_recovery["% Recovery"].round(2)
+        df_best_recovery["Angle (°)"] = df_best_recovery["Angle (°)"].round(2)
+
+        # Display the optimal coil width, angle, and maximum recovery with rounded values
+        st.subheader("Maximum Recovery for Each Width")
+        st.dataframe(df_best_recovery)
+
+        # Create a bar graph with Plotly
+        fig = px.bar(df_best_recovery, 
+                    x="Width (mm)", 
+                    y="% Recovery", 
+                    text="% Recovery",  # Add data labels on top of bars
+                    title="Maximum Recovery for Each Width",
+                    labels={"% Recovery": "Recovery (%)", "Width (mm)": "Coil Width (mm)"},
+                    height=500)
+
+        # Customize the appearance of the bar graph
+        fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')  # Data labels on top
+        fig.update_layout(
+            yaxis_title="Recovery (%)", 
+            xaxis_title="Coil Width (mm)", 
+            xaxis=dict(
+                tickvals=w_values  # Set x-axis tick values to the specific coil widths
+            ),
+            uniformtext_minsize=8, 
+            uniformtext_mode='hide'
+        )
+
+        # Display the bar chart in Streamlit
+        st.plotly_chart(fig)
+        
