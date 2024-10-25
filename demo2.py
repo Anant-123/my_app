@@ -64,7 +64,7 @@ else:
         st.title('WIP Day-wise Trend')
     
         # File uploader to upload multiple files
-        uploaded_files = st.file_uploader("Choose WIP Excel files", accept_multiple_files=True, type="xlsx")
+        uploaded_files = st.file_uploader("📂Choose WIP Excel files", accept_multiple_files=True, type="xlsx")
     
         @st.cache_data
         def process_files(uploaded_files):
@@ -276,16 +276,35 @@ else:
                     best_w = w
                     best_angle = angle
 
-        # Display the optimal coil width, angle, and maximum recovery
-        st.subheader("Optimal Recovery Results")
-        st.write(f"**Optimal coil width:** {best_w} mm")
-        st.write(f"**Optimal angle:** {best_angle:.2f}°")
-        st.write(f"**Maximum recovery percentage:** {max_recovery:.2f}%")
+        # # Display the optimal coil width, angle, and maximum recovery
+        # st.subheader("Optimal Recovery Results")
+        # st.write(f"**Optimal coil width:** {best_w} mm")
+        # st.write(f"**Optimal angle:** {best_angle:.2f}°")
+        # st.write(f"**Maximum recovery percentage:** {max_recovery:.2f}%")
+
+        # Custom HTML for a light pink rounded box
+        box_style = """
+            <div style="
+                background-color: #FFCCCB; 
+                border-radius: 10px; 
+                padding: 20px; 
+                margin: 10px 0px;
+                box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+            ">
+            <h3 style="color: #333333;">Optimal Recovery Results 🔍</h3>
+            <p><b>Optimal coil width:</b> {best_w} mm</p>
+            <p><b>Optimal angle:</b> {best_angle:.2f}°</p>
+            <p><b>Maximum recovery percentage:</b> {max_recovery:.2f}%</p>
+            </div>
+        """.format(best_w=best_w, best_angle=best_angle, max_recovery=max_recovery)
+
+        # Display the custom box using st.markdown
+        st.markdown(box_style, unsafe_allow_html=True)
 
         # Create a DataFrame for detailed recovery results
         df_recovery = pd.DataFrame(recovery_data, columns=["Width (mm)", "Angle (°)", "% Recovery"])
 
-        st.dataframe(df_recovery)
+        #st.dataframe(df_recovery)
 
         # Filter the DataFrame to show only the maximum recovery row for each width
         df_best_recovery = df_recovery.groupby("Width (mm)", as_index=False).apply(lambda x: x.loc[x["% Recovery"].idxmax()])
@@ -295,30 +314,52 @@ else:
         df_best_recovery["Angle (°)"] = df_best_recovery["Angle (°)"].round(2)
 
         # Display the optimal coil width, angle, and maximum recovery with rounded values
-        st.subheader("Maximum Recovery for Each Width")
+        st.subheader("Recovery % for Each Width")
         st.dataframe(df_best_recovery)
+
+        # Create two columns
+        #col1, col2 = st.columns(2)
+
+        # # Display df_recovery in the first column
+        # with col1:
+        #     st.subheader("All possible combinations of width and angles")
+        #     st.dataframe(df_recovery)
+
+        # # Display df_best_recovery in the second column
+        # with col2:
+        #     st.subheader("Best possible Recovery for Each Width")
+        #     st.dataframe(df_best_recovery)
+
+        
+        # Assuming df_best_recovery is already defined and has columns "Width (mm)" and "% Recovery"
+        w_values = df_best_recovery["Width (mm)"].unique()  # Get unique coil widths
 
         # Create a bar graph with Plotly
         fig = px.bar(df_best_recovery, 
                     x="Width (mm)", 
                     y="% Recovery", 
                     text="% Recovery",  # Add data labels on top of bars
-                    title="Maximum Recovery for Each Width",
+                    title=" Recovery for Each Width📈",
                     labels={"% Recovery": "Recovery (%)", "Width (mm)": "Coil Width (mm)"},
                     height=500)
 
         # Customize the appearance of the bar graph
-        fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')  # Data labels on top
+        fig.update_traces(
+            texttemplate='%{text:.2f}',  # Format data labels to 2 decimal places
+            textposition='outside',
+            textfont=dict(size=14, color='black', family='Arial', weight="bold")  # Increase size and make text bold
+        )
+
         fig.update_layout(
             yaxis_title="Recovery (%)", 
             xaxis_title="Coil Width (mm)", 
             xaxis=dict(
-                tickvals=w_values  # Set x-axis tick values to the specific coil widths
+                tickvals=w_values  # Set x-axis tick values to the unique coil widths
             ),
             uniformtext_minsize=8, 
-            uniformtext_mode='hide'
+            uniformtext_mode='hide',
+            bargap=0.1  # Adjust space between bars if needed
         )
 
         # Display the bar chart in Streamlit
-        st.plotly_chart(fig)
-        
+        st.plotly_chart(fig, use_container_width=True)  # Enable dynamic width        
