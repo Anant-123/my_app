@@ -285,7 +285,7 @@ else:
         # Custom HTML for a light pink rounded box
         box_style = """
             <div style="
-                background-color: #FFCCCB; 
+                background-color: #d3d9e7; 
                 border-radius: 10px; 
                 padding: 20px; 
                 margin: 10px 0px;
