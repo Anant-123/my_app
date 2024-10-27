@@ -48,7 +48,7 @@ if not st.session_state['logged_in']:
     login()
 else:
     # Sidebar for navigation
-    st.sidebar.image('logo.jfif', width=50)
+    st.sidebar.image('logo_hil.jpg', width=50)
     st.sidebar.title("FRP Planning")
     st.sidebar.write(f"Welcome, {st.session_state['username']}!")
     st.sidebar.title("Navigation")
@@ -60,7 +60,7 @@ else:
     # Page 1: WIP Data Processor
     if page == "Page 1: WIP Daily Trend":
 
-        st.image('logo.jfif', width=100)
+        st.image('logo_hil.jpg', width=100)
         st.title('WIP Day-wise Trend')
     
         # File uploader to upload multiple files
@@ -209,7 +209,7 @@ else:
 
     # Page 2: Upload and Merge DataFrames
     if page == "Page 2: Circle Best recovery figure":
-        st.image('logo.jfif', width=100)
+        st.image('logo_hil.jpg', width=100)
         st.title("Circle Best recovery figure")
         # Define the recovery calculation function
         def recovery(w, b, t, angle_deg):
