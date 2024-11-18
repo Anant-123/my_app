@@ -15,7 +15,10 @@ USER_DB = {
     "swapan.g": "password",
     "mahesh.m": "password",
     "anant.m": "123",
-    "harendra.s": "password"
+    "harendra.s": "password",
+    "abhijit.b":"password",
+    "ravindra.p":"password",
+    "vikram.b":"password"
 }
 
 # Function to verify username and password
@@ -52,7 +55,7 @@ else:
     st.sidebar.title("FRP Planning")
     st.sidebar.write(f"Welcome, {st.session_state['username']}!")
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Best recovery figure"])
+    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Best recovery figure","Page 3: Circle Best width plan"])
     if st.sidebar.button("Logout"):
         logout()
         st.experimental_rerun()
@@ -210,18 +213,21 @@ else:
     # Page 2: Upload and Merge DataFrames
     if page == "Page 2: Circle Best recovery figure":
         st.image('logo_hil.jpg', width=100)
-        st.title("Circle Best recovery figure")
+        st.title("Circle Best recovery %")
         # Define the recovery calculation function
-        def recovery(w, b, t, angle_deg):
+
+        def recovery(w, b, angle_deg,disc_to_border, disc_to_disc):
             # Convert angle from degrees to radians
             angle_rad = np.pi * angle_deg / 180
-            
-            blank_center = b + 5
+            t=1
+
+            blank_center = b + disc_to_disc
+
             tool_pitch = blank_center * np.sin(angle_rad)
             coil_pitch = blank_center * np.cos(angle_rad)
             
             # Constants
-            disc_to_border = 30  # Fixed value
+            #disc_to_border = 30  # Fixed value
             
             # Usable width
             usable_width = w - 2 * disc_to_border
@@ -248,8 +254,10 @@ else:
             return percent_recovery
 
             # Inputs for b and t from user
-        b = st.number_input("Enter the disc diameter (b) in mm:", min_value=100, max_value=1000, value=500, step=10)
-        t = st.number_input("Enter the thickness (t) in mm:", min_value=1, max_value=100, value=10, step=1)
+        b = st.number_input("Enter the disc diameter (b) in mm:", min_value=100, max_value=1000, value=250, step=10)
+        disc_to_disc = st.number_input("Enter the Disc to Disc gap in mm:", min_value=5, max_value=20, value=5, step=1)
+        disc_to_border = st.number_input("Enter the Disc to Border gap in mm:", min_value=20, max_value=150, value=30, step=1)
+
 
         # Possible discrete values for coil width w
         w_values = [914, 965, 1016, 1067, 1118, 1270, 1320]
@@ -267,7 +275,7 @@ else:
         # Evaluate recovery for each value of w and angle
         for w in w_values:
             for angle in angle_values:
-                rec = recovery(w, b, t, angle)
+                rec = recovery(w, b, angle, disc_to_border, disc_to_disc)
                 recovery_data.append([w, angle, rec])
                 
                 # Update optimal recovery if a better value is found
@@ -362,4 +370,94 @@ else:
         )
 
         # Display the bar chart in Streamlit
-        st.plotly_chart(fig, use_container_width=True)  # Enable dynamic width        
+        st.plotly_chart(fig, use_container_width=True)  # Enable dynamic width  
+
+    # Page 3: Upload and see the gap 
+    if page == "Page 3: Circle Best width plan":   
+        st.image('logo_hil.jpg', width=100)
+        st.title("Circle plan & Gap identification")
+
+        uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
+
+        if uploaded_file is not None:
+            df = pd.read_excel(uploaded_file)
+            
+            filtered_df = df[df['Resources'].isin(['CBL', 'NCBL'])]
+            
+            def recovery(w, b, t, angle_deg):
+                angle_rad = np.pi * angle_deg / 180
+                blank_center = b + 5
+                tool_pitch = blank_center * np.sin(angle_rad)
+                coil_pitch = blank_center * np.cos(angle_rad)
+                disc_to_border = 30
+                usable_width = w - 2 * disc_to_border
+                if usable_width <= b:
+                    return -np.inf
+                no_of_blanks = np.floor((usable_width - b) / tool_pitch) + 1
+                material_used = 2 * coil_pitch * w * t / 1000
+                blank_vol = (no_of_blanks * np.pi * b**2 * t) / 4000
+                percent_loss = (material_used - blank_vol) / material_used * 100
+                return 100 - percent_loss
+            
+            w_values = [914, 965, 1016, 1067, 1118, 1270, 1320]
+            angle_values = np.arange(30, 60.1, 1.5)
+            unique_diameters = filtered_df['Cicle diameter'].unique()
+
+            results = []
+            for b in unique_diameters:
+                for w in w_values:
+                    for angle_deg in angle_values:
+                        percent_recovery = recovery(w, b, 1, angle_deg)
+                        results.append({'Circle Diameter': b, 'Width': w, 'Angle (degrees)': angle_deg, 'Recovery (%)': percent_recovery})
+            
+            recovery_master_df = pd.DataFrame(results)
+            max_recovery_df = recovery_master_df.loc[recovery_master_df.groupby('Circle Diameter')['Recovery (%)'].idxmax()]
+            max_recovery_df = max_recovery_df[['Circle Diameter', 'Width', 'Recovery (%)']]
+            filtered_df = filtered_df.merge(max_recovery_df, how='left', left_on='Cicle diameter', right_on='Circle Diameter')
+            filtered_df.drop(columns=['Circle Diameter'], inplace=True)
+            filtered_df.rename(columns={'Recovery (%)': 'Max Recovery', 'Width': 'Optimal Width'}, inplace=True)
+            
+            actual_recovery_values = []
+            for _, row in filtered_df.iterrows():
+                filtered_recovery = recovery_master_df[
+                    (recovery_master_df['Circle Diameter'] == row['Cicle diameter']) &
+                    (recovery_master_df['Width'] == row['Hot Rolled(base)'])
+                ]
+                if not filtered_recovery.empty:
+                    max_recovery = filtered_recovery['Recovery (%)'].max()
+                else:
+                    max_recovery = np.nan
+                actual_recovery_values.append(max_recovery)
+            
+            filtered_df['Actual Recovery'] = actual_recovery_values
+            filtered_df['Difference'] = filtered_df['Max Recovery'] - filtered_df['Actual Recovery']
+
+             # Calculate Loss in Kg
+            filtered_df['Loss in Kg'] = (filtered_df['Difference'] * filtered_df['Input'] * 0.9 / 100)
+
+            # Remove rows where Loss in Kg has inf values
+            filtered_df = filtered_df[~filtered_df['Loss in Kg'].isin([np.inf, -np.inf])]
+
+            # Calculate Opportunity %
+            total_loss_kg = filtered_df['Loss in Kg'].sum()
+            total_input = filtered_df['Input'].sum()
+            opportunity_percentage = (total_loss_kg / total_input) * 100
+
+            # Round to 2 decimal places
+            opportunity_percentage = round(opportunity_percentage, 2)
+
+            # Display Opportunity % Card
+            st.subheader("Opportunity Analysis")
+            st.metric(label="Opportunity %", value=f"{opportunity_percentage} %")
+
+            
+            st.write("Processed DataFrame:")
+            st.dataframe(filtered_df)
+            
+            csv = filtered_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Download the File",
+                data=csv,
+                file_name='recovery_analysis.csv',
+                mime='text/csv',
+        )
