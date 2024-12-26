@@ -18,7 +18,8 @@ USER_DB = {
     "harendra.s": "password",
     "abhijit.b":"password",
     "ravindra.p":"password",
-    "vikram.b":"password"
+    "vikram.b":"password",
+    "user":"123"
 }
 
 # Function to verify username and password
@@ -55,11 +56,13 @@ else:
     st.sidebar.title("FRP Planning")
     st.sidebar.write(f"Welcome, {st.session_state['username']}!")
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Best recovery figure","Page 3: Circle Best width plan"])
+    
+    page = st.sidebar.selectbox("Choose a page", ["Page 1: WIP Daily Trend", "Page 2: Circle Best recovery figure","Page 3: Circle Best width plan", "Page 4: RTFG & PP Report"])
+    
     if st.sidebar.button("Logout"):
         logout()
         st.experimental_rerun()
-
+    st.sidebar.markdown("<div style='text-align: center; margin-top: 50px; font-size: 14px;'>Developed by <b>Anant Mandal</b></div>", unsafe_allow_html=True)
     # Page 1: WIP Data Processor
     if page == "Page 1: WIP Daily Trend":
 
@@ -461,3 +464,127 @@ else:
                 file_name='recovery_analysis.csv',
                 mime='text/csv',
         )
+
+    # Page 3: RTFG & PP report
+    if page == "Page 4: RTFG & PP Report":  
+        st.image('logo_hil.jpg', width=100)
+    
+        #st.title(page_title="Renukoot FRP ", layout="wide")
+
+        st.markdown("<h1 style='text-align: center; color: #003366; font-size: 36px;'>Renukoot FRP</h1>", unsafe_allow_html=True)
+
+
+        # Page styling
+        st.markdown(
+            """
+            <style>
+            .title {
+                font-size: 25px;
+                color: #0047AB;
+                font-weight: bold;
+            }
+            .colored-box {
+                background-color: #d4edda;
+                color: #155724;
+                padding: 15px;
+                border: 1px solid #c3e6cb;
+                border-radius: 5px;
+                font-size: 18px;
+                margin-top: 20px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<div class="title">Daily Reports Processing</div>', unsafe_allow_html=True)
+
+        # Function to process Pending to Pack report
+        def process_pending_to_pack(file):
+            df = pd.read_excel(file, header=None)
+            df = df.dropna(how="all").reset_index(drop=True)
+
+            headers = df.iloc[0].str.strip().tolist()
+            data = df.iloc[1:]
+
+            data_split = data[0].str.split(r"\s{2,}", expand=True)
+
+            if len(headers) == data_split.shape[1]:
+                data_split.columns = headers
+            else:
+                data_split.columns = [f"Column_{i}" for i in range(data_split.shape[1])]
+
+            data_split.columns = data_split.iloc[0]
+            data_split = data_split[1:].reset_index(drop=True)
+
+
+            data_split.rename(columns={"Pack": "Quantity", "Ordr Status": "Date"}, inplace=True)
+
+            data_split["Date"] = pd.to_datetime(data_split["Date"], errors="coerce", dayfirst=True)
+            data_split["Quantity"] = pd.to_numeric(data_split["Quantity"], errors="coerce")
+            data_split["Case Qty"] = pd.to_numeric(data_split["Case Qty"], errors="coerce")
+
+            today = datetime.today()
+            data_split["Number of Days"] = ((today - data_split["Date"]) / pd.Timedelta(days=1)).round(1)
+            filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
+            return filtered_data, filtered_data["Case Qty"].sum()
+
+        # Function to process RTFG report
+        def process_rtf_report(file):
+            df = pd.read_excel(file, header=None)
+            df = df.dropna(how="all").reset_index(drop=True)
+
+            headers = df.iloc[0].str.strip().tolist()
+            data = df.iloc[1:]
+
+            data_split = data[0].str.split(r"\s{2,}", expand=True)
+            if len(headers) == data_split.shape[1]:
+                data_split.columns = headers
+            else:
+                data_split.columns = [f"Column_{i}" for i in range(data_split.shape[1])]
+
+            data_split.columns = data_split.iloc[1]
+            data_split = data_split[1:].reset_index(drop=True)
+
+            for col in ["Creation Date", "Parent Lot Origin"]:
+                data_split[col] = pd.to_datetime(data_split[col], errors="coerce", dayfirst=True)
+
+            data_split["Creation Date"] = data_split["Creation Date"].combine_first(data_split["Parent Lot Origin"])
+            today = datetime.today()
+            data_split["Number of Days"] = ((today - data_split["Creation Date"]) / pd.Timedelta(days=1)).round(1)
+
+            filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
+            filtered_data.rename(columns={"Pieces": "Quantity"}, inplace=True)
+            filtered_data["Quantity"] = pd.to_numeric(filtered_data["Quantity"], errors="coerce")
+            return filtered_data, filtered_data["Quantity"].sum()
+
+
+
+
+        # Upload section
+        col1, col2 = st.columns(2)
+
+        with col1:
+            
+            pending_file = st.file_uploader("Upload Pending to Pack Report", type=["xlsx"])
+
+        with col2:
+            rtf_file = st.file_uploader("Upload RTFG Report", type=["xlsx"])
+
+        # Process and display results for Pending to Pack report
+        if pending_file:
+            st.markdown('<div class="title">Pending to Pack Report</div>', unsafe_allow_html=True)
+            pending_data, pending_sum = process_pending_to_pack(pending_file)
+            st.write(pending_data)
+            st.markdown(f'<div class="colored-box">Total Quantity Kg(Pending to Pack): {pending_sum}</div>', unsafe_allow_html=True)
+            st.download_button("Download Pending Filtered Data", pending_data.to_csv(index=False), "pending_filtered.csv")
+
+        # Process and display results for RTFG report
+        if rtf_file:
+            st.markdown('<div class="title">RTFG Report</div>', unsafe_allow_html=True)
+            rtf_data, rtf_sum = process_rtf_report(rtf_file)
+            st.write(rtf_data)
+            st.markdown(f'<div class="colored-box">Total Quantity Kg(RTFG): {rtf_sum}</div>', unsafe_allow_html=True)
+            st.download_button("Download RTFG Filtered Data", rtf_data.to_csv(index=False), "rtfg_filtered.csv")
+
+        
