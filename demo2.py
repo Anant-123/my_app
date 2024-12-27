@@ -504,9 +504,11 @@ else:
             df = pd.read_excel(file, header=None)
             df = df.dropna(how="all").reset_index(drop=True)
 
+            # Extract headers and data
             headers = df.iloc[0].str.strip().tolist()
             data = df.iloc[1:]
 
+            # Split data into columns
             data_split = data[0].str.split(r"\s{2,}", expand=True)
 
             if len(headers) == data_split.shape[1]:
@@ -517,16 +519,28 @@ else:
             data_split.columns = data_split.iloc[0]
             data_split = data_split[1:].reset_index(drop=True)
 
+            # Rename columns for consistency
+            data_split.rename(columns={"Pack": "Quantity", "Ordr Status": "Date", "Line No": "Line_Date"}, inplace=True)
 
-            data_split.rename(columns={"Pack": "Quantity", "Ordr Status": "Date"}, inplace=True)
-
+            # Parse dates from "Date" and "Line_Date" columns
             data_split["Date"] = pd.to_datetime(data_split["Date"], errors="coerce", dayfirst=True)
+            data_split["Line_Date"] = pd.to_datetime(data_split["Line_Date"], errors="coerce", dayfirst=True)
+
+            # Create a new "Date" column, prioritizing "Date" over "Line_Date"
+            data_split["Final_Date"] = data_split["Date"].combine_first(data_split["Line_Date"])
+
+            # Convert Quantity and Case Qty to numeric
             data_split["Quantity"] = pd.to_numeric(data_split["Quantity"], errors="coerce")
             data_split["Case Qty"] = pd.to_numeric(data_split["Case Qty"], errors="coerce")
 
+            # Calculate "Number of Days" based on "Final_Date"
             today = datetime.today()
-            data_split["Number of Days"] = ((today - data_split["Date"]) / pd.Timedelta(days=1)).round(1)
+            data_split["Number of Days"] = ((today - data_split["Final_Date"]) / pd.Timedelta(days=1)).round(1)
+
+            # Filter data where "Number of Days" > 2
             filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
+
+            # Return filtered data and sum of "Case Qty"
             return filtered_data, filtered_data["Case Qty"].sum()
 
         # Function to process RTFG report
