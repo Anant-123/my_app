@@ -535,16 +535,8 @@ else:
             data_split["Case Qty"] = pd.to_numeric(data_split["Case Qty"], errors="coerce")
 
             # Calculate "Number of Days" based on "Final_Date"
-            # Get the current UTC time
-            utc_time = datetime.utcnow()
             
-            # Define the IST timezone
-            ist_timezone = pytz.timezone("Asia/Kolkata")
-            
-            # Convert UTC time to IST
-            today = utc_time.astimezone(ist_timezone)
-            
-            # today = datetime.today()
+            today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Final_Date"]) / pd.Timedelta(days=1)).round(1)
 
             # Filter data where "Number of Days" > 2
@@ -575,16 +567,7 @@ else:
 
             data_split["Creation Date"] = data_split["Creation Date"].combine_first(data_split["Parent Lot Origin"])
 
-            # Get the current UTC time
-            utc_time = datetime.utcnow()
-            
-            # Define the IST timezone
-            ist_timezone = pytz.timezone("Asia/Kolkata")
-            
-            # Convert UTC time to IST
-            today = utc_time.astimezone(ist_timezone)
-
-            # today = datetime.today()
+             today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Creation Date"]) / pd.Timedelta(days=1)).round(1)
 
             filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
@@ -610,16 +593,8 @@ else:
             st.markdown('<div class="title">Pending to Pack Report</div>', unsafe_allow_html=True)
             pending_data, pending_sum = process_pending_to_pack(pending_file)
             st.write(pending_data)
-            # Get the current UTC time
-            utc_time = datetime.utcnow()
             
-            # Define the IST timezone
-            ist_timezone = pytz.timezone("Asia/Kolkata")
-            
-            # Convert UTC time to IST
-            today = utc_time.astimezone(ist_timezone)
-            
-            # today = datetime.today()
+            today = datetime.today()
             st.write(today)
             st.markdown(f'<div class="colored-box">Total Quantity Kg(Pending to Pack): {pending_sum}</div>', unsafe_allow_html=True)
             st.download_button("Download Pending Filtered Data", pending_data.to_csv(index=False), "pending_filtered.csv")
