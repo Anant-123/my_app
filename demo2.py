@@ -590,6 +590,7 @@ else:
             st.markdown('<div class="title">Pending to Pack Report</div>', unsafe_allow_html=True)
             pending_data, pending_sum = process_pending_to_pack(pending_file)
             st.write(pending_data)
+            today = datetime.today()
             st.write(today)
             st.markdown(f'<div class="colored-box">Total Quantity Kg(Pending to Pack): {pending_sum}</div>', unsafe_allow_html=True)
             st.download_button("Download Pending Filtered Data", pending_data.to_csv(index=False), "pending_filtered.csv")
