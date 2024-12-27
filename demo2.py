@@ -567,7 +567,7 @@ else:
 
             data_split["Creation Date"] = data_split["Creation Date"].combine_first(data_split["Parent Lot Origin"])
 
-             today = datetime.today()
+            today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Creation Date"]) / pd.Timedelta(days=1)).round(1)
 
             filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
