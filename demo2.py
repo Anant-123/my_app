@@ -570,7 +570,7 @@ else:
             today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Creation Date"]) / pd.Timedelta(days=1)).round(1)
 
-            filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
+            filtered_data = data_split[data_split["Number of Days"] > 1.8].reset_index(drop=True)
             filtered_data.rename(columns={"Pieces": "Quantity"}, inplace=True)
             filtered_data["Quantity"] = pd.to_numeric(filtered_data["Quantity"], errors="coerce")
             return filtered_data, filtered_data["Quantity"].sum()
