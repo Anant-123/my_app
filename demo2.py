@@ -544,7 +544,7 @@ else:
             # Convert UTC time to IST
             today = utc_time.astimezone(ist_timezone)
             
-            #today = datetime.today()
+            # today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Final_Date"]) / pd.Timedelta(days=1)).round(1)
 
             # Filter data where "Number of Days" > 2
@@ -584,7 +584,7 @@ else:
             # Convert UTC time to IST
             today = utc_time.astimezone(ist_timezone)
 
-            #today = datetime.today()
+            # today = datetime.today()
             data_split["Number of Days"] = ((today - data_split["Creation Date"]) / pd.Timedelta(days=1)).round(1)
 
             filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
@@ -619,7 +619,7 @@ else:
             # Convert UTC time to IST
             today = utc_time.astimezone(ist_timezone)
             
-            #today = datetime.today()
+            # today = datetime.today()
             st.write(today)
             st.markdown(f'<div class="colored-box">Total Quantity Kg(Pending to Pack): {pending_sum}</div>', unsafe_allow_html=True)
             st.download_button("Download Pending Filtered Data", pending_data.to_csv(index=False), "pending_filtered.csv")
