@@ -540,7 +540,7 @@ else:
             data_split["Number of Days"] = ((today - data_split["Final_Date"]) / pd.Timedelta(days=1)).round(1)
 
             # Filter data where "Number of Days" > 2
-            filtered_data = data_split[data_split["Number of Days"] > 2].reset_index(drop=True)
+            filtered_data = data_split[data_split["Number of Days"] > 1.75].reset_index(drop=True)
 
             # Return filtered data and sum of "Case Qty"
             return filtered_data, filtered_data["Case Qty"].sum()
