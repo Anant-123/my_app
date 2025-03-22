@@ -532,7 +532,7 @@ else:
 
             # Convert Quantity and Case Qty to numeric
             data_split["Quantity"] = pd.to_numeric(data_split["Quantity"], errors="coerce")
-            data_split["Case Qty"] = pd.to_numeric(data_split["Case Qty"], errors="coerce")
+            data_split["Lot Qty"] = pd.to_numeric(data_split["Lot Qty"], errors="coerce")
 
             # Calculate "Number of Days" based on "Final_Date"
             
@@ -543,7 +543,7 @@ else:
             filtered_data = data_split[data_split["Number of Days"] > 1.8].reset_index(drop=True)
 
             # Return filtered data and sum of "Case Qty"
-            return filtered_data, filtered_data["Case Qty"].sum()
+            return filtered_data, filtered_data["Lot Qty"].sum()
 
         # Function to process RTFG report
         def process_rtf_report(file):
